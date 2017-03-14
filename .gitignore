@@ -1,0 +1,5 @@
+*.pyc
+build/
+dist/
+sco_engine.egg-info/
+scoengine/venv/
