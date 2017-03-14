@@ -1,6 +1,6 @@
-# Standard Cortical Observer - Predictive Model Workflow Engine and Worker
+# Standard Cortical Observer - Predictive Model Workflow Engine Client
 
-The workflow engine is used to run predictive models for experiments that are defined in the SCO Data Store. The classes in this package define client interfaces to the engine. The actual workflow is executed by workers that are defined in the workflow module. These workers may run locally on the same machine as the engine client (and the web server) or on remote machines.
+The workflow engine is used to run predictive models for experiments that are defined in the SCO Data Store. The classes in this package define client interfaces to the engine. The actual workflow is executed by workers that are defined in the SCO worker package. These workers may run locally on the same machine as the engine client (and the web server) or on remote machines.
 
 The SCO Engine package is intended to decouple the web server code from the predictive model code.
 
