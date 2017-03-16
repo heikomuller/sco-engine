@@ -45,22 +45,34 @@ class RabbitMQClient(SCOEngineClient):
     """SCO Workflow Engine client using RabbitMQ. Sends Json messages containing
     run identifier (and experiment identifier) to run model.
     """
-    def __init__(self, host, queue, reference_factory):
+    def __init__(self, host='localhost', port=5672, virtual_host='/', queue='sco', user='sco', password=None, reference_factory=None):
         """Initialize the client by providing host name and queue identifier
         for message queue. In addition, requires a HATEOAS reference factory
         to generate resource URLs.
 
         Parameters
         ----------
-        host : string
+        host : string, optional
             Name of host that runs RabbitMQ
-        queue : string
+        port : int, optional
+            Port that RabbitMQ is listening on
+        virtual_host : string, optional
+            RabbitMQ virtual host name
+        queue : string, optional
             Identifier of message queue to communicate with workers
+        user : string, optional
+            RabbitMQ user for Standard Cortical Observer
+        password : string, optional
+            RabbitMQ user password
         reference_factory : hateoas.HATEOASReferenceFactory
             Factory for resource URL's
         """
         self.host = host
+        self.port = port
+        self.virtual_host = virtual_host
         self.queue = queue
+        self.user = user
+        self.password = password
         self.request_factory = RequestFactory(reference_factory)
 
     def run_model(self, model_run):
@@ -79,7 +91,13 @@ class RabbitMQClient(SCOEngineClient):
         # server is not running. In this case we raise an EngineException to
         # allow caller to delete model run.
         try:
-            con = pika.BlockingConnection(pika.ConnectionParameters(host=self.host))
+            credentials = pika.PlainCredentials(self.user, self.password)
+            con = pika.BlockingConnection(pika.ConnectionParameters(
+                host=self.host,
+                port=self.port,
+                virtual_host=self.virtual_host,
+                credentials=credentials
+            ))
             channel = con.channel()
             channel.queue_declare(queue=self.queue, durable=True)
         except pika.exceptions.AMQPError as ex:
