@@ -209,9 +209,9 @@ class RequestFactory(object):
         """
         return ModelRunRequest(
             model_run.identifier,
-            model_run.experiment,
+            model_run.experiment_id,
             self.reference_factory.experiments_prediction_reference(
-                model_run.experiment,
+                model_run.experiment_id,
                 model_run.identifier
             )
         )
