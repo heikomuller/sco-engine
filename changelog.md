@@ -12,3 +12,7 @@
 
 * Added export_sco_parameters.py to create description of registered SCO models and image group parameters
 * Adjust to changes in SCO Data Store (0.5.0)
+
+### 0.2.0 - 2017-06-28
+
+* Add model registry to engine (merge from sco-models)
