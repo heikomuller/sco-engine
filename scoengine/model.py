@@ -176,6 +176,20 @@ class ModelHandle(ObjectHandle):
         self.connector = connector
 
     @property
+    def description(self):
+        """Model description from properties set. Is None if no 'description'
+        property exists.
+
+        Returns
+        -------
+        string
+        """
+        if 'description' in self.properties:
+            return self.properties['description']
+        else:
+            return None
+
+    @property
     def is_model(self):
         """Flag indicating that this object represents an model description.
 
@@ -253,6 +267,7 @@ class ModelRegistry(MongoDBStore):
             Json representation of the object
 
         Returns
+        -------
         ModelHandle
         """
         # The timestamp is optional (e.g., in cases where model definitions are

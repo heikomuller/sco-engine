@@ -16,3 +16,7 @@
 ### 0.2.0 - 2017-06-28
 
 * Add model registry to engine (merge from sco-models)
+
+### 0.2.1 - 2017.06-30
+
+* Add model description property
