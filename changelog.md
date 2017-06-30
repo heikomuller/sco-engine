@@ -20,3 +20,7 @@
 ### 0.2.1 - 2017.06-30
 
 * Add model description property
+
+### 0.2.2 - 2017.06-30
+
+* Fix bug (missing init parameter for EngineException)
