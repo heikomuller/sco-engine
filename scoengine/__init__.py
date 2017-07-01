@@ -377,7 +377,6 @@ class BufferedRabbitMQConnector(SCOEngineConnector):
         # Create model run request
         request = RequestFactory().get_request(model_run, run_url)
         # Write request and connector information into buffer
-        doc =
         self.collection.insert_one({
             'connector' : connector,
             'request' : request.to_dict()
