@@ -57,6 +57,7 @@ class SCOEngine(object):
         """
         # Data is bein stored in a collection named 'models'
         self.registry = ModelRegistry(mongo)
+        self.buffer_collection = mongo.get_database().requestbuffer
 
     def delete_model(self, model_id):
         """Delete the model with the given identifier from the model registry.
@@ -165,8 +166,12 @@ class SCOEngine(object):
         model = self.get_model(model_run.model_id)
         if model is None:
             raise ValueError('unknown model: ' + model_run.model_id)
-        # By now there is only one connector
-        RabbitMQClient(model.connector).run_model(model_run, run_url)
+        # By now there is only one connector. Use the buffered connector to
+        # avoid closed connection exceptions
+        BufferedRabbitMQClient(
+            self.buffer_collection,
+            model.connector
+        ).run_model(model_run, run_url)
 
     def update_model_connector(self, model_id, connector):
         """Update the connector information for a given model.
@@ -319,6 +324,7 @@ class RabbitMQClient(SCOEngineConnector):
                 delivery_mode = 2, # make message persistent
             )
         )
+        con.close()
 
     @staticmethod
     def validate(connector):
@@ -334,6 +340,48 @@ class RabbitMQClient(SCOEngineConnector):
         # Try to convert the value for'port' to int.
         int(connector['port'])
 
+
+class BufferedRabbitMQConnector(SCOEngineConnector):
+    """Workaround for pika ConnectionClosed exceptions. Writes RabbitMQ run
+    request messages to MongoDB and expects a second process to push them
+    to the message queue.
+    """
+    def __init__(self, collection, connector):
+        """Initialize the MongoDB collection that is used as buffer and the
+        RabbitMQ connector.
+
+        Parameters
+        ----------
+        collection : MongoDB Collection
+            Collection that acts as the run request buffer
+        connector : dict
+            Connection information for RabbitMQ
+        """
+        # Validate the connector information. Raises ValueError in case of an
+        # invalid connector.
+        RabbitMQClient.validate(connector)
+        self.collection = collection
+        self.connector = connector
+
+    def run_model(self, model_run, run_url):
+        """Create entry in run request buffer. Assumes that an external process
+        will push the request to a RabbitMQ queue.
+
+        Parameters
+        ----------
+        model_run : ModelRunHandle
+            Handle to model run
+        run_url : string
+            URL for model run information
+        """
+        # Create model run request
+        request = RequestFactory().get_request(model_run, run_url)
+        # Write request and connector information into buffer
+        doc =
+        self.collection.insert_one({
+            'connector' : connector,
+            'request' : request.to_dict()
+        })
 
 # ------------------------------------------------------------------------------
 # Request Factory

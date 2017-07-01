@@ -30,3 +30,7 @@
 * Add update connector API call
 * Rename to_json/from_json to to_dict/from_dict
 * Updated unit tests to API changes
+
+### 0.3.1 - 2017-07-01
+
+* Add buffered RabbitMQ connector to avoid ConnectionClosed exceptions
