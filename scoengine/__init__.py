@@ -168,7 +168,7 @@ class SCOEngine(object):
             raise ValueError('unknown model: ' + model_run.model_id)
         # By now there is only one connector. Use the buffered connector to
         # avoid closed connection exceptions
-        BufferedRabbitMQClient(
+        BufferedRabbitMQConnector(
             self.buffer_collection,
             model.connector
         ).run_model(model_run, run_url)
