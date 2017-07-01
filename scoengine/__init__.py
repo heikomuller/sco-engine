@@ -132,13 +132,7 @@ class SCOEngine(object):
         ModelHandle
         """
         # Validate the given connector information
-        if not 'connector' in connector:
-            raise ValueError('missing connector name')
-        elif connector['connector'] != CONNECTOR_RABBITMQ:
-            raise ValueError('unknown connector: ' + str(connector['connector']))
-        # Call the connector specific validator. Will raise a ValueError if
-        # given connector information is invalid
-        RabbitMQClient.validate(connector)
+        self.validate_connector(connector)
         # Connector information is valid. Ok to register the model. Will raise
         # ValueError if model with given identifier exists. Catch duplicate
         # key error to transform it into a ValueError
@@ -174,11 +168,34 @@ class SCOEngine(object):
         # By now there is only one connector
         RabbitMQClient(model.connector).run_model(model_run, run_url)
 
+    def update_model_connector(self, model_id, connector):
+        """Update the connector information for a given model.
+
+        Returns None if the specified model not exist.
+
+        Parameters
+        ----------
+        model_id : string
+            Unique model identifier
+        connector : dict
+            New connection information
+
+        Returns
+        -------
+        ModelHandle
+        """
+        # Validate the given connector information
+        self.validate_connector(connector)
+        # Connector information is valid. Ok to update the model.
+        return self.registry.update_connector(model_id, connector)
+
     def upsert_model_properties(self, model_id, properties):
         """Upsert properties of given model.
 
         Raises ValueError if given property dictionary results in an illegal
         operation.
+
+        Returns None if the specified model does not exist.
 
         Parameters
         ----------
@@ -190,9 +207,25 @@ class SCOEngine(object):
         Returns
         -------
         ModelHandle
-            Handle for updated model or None if model doesn't exist
         """
         return self.registry.upsert_object_property(model_id, properties)
+
+    def validate_connector(self, connector):
+        """Validate a given connector. Raises ValueError if the connector is not
+        valid.
+
+        Parameters
+        ----------
+        connector : dict
+            Connection information
+        """
+        if not 'connector' in connector:
+            raise ValueError('missing connector name')
+        elif connector['connector'] != CONNECTOR_RABBITMQ:
+            raise ValueError('unknown connector: ' + str(connector['connector']))
+        # Call the connector specific validator. Will raise a ValueError if
+        # given connector information is invalid
+        RabbitMQClient.validate(connector)
 
 
 # ------------------------------------------------------------------------------
@@ -269,14 +302,19 @@ class RabbitMQClient(SCOEngineConnector):
             channel = con.channel()
             channel.queue_declare(queue=self.queue, durable=True)
         except pika.exceptions.AMQPError as ex:
-            raise EngineException(str(ex), 500)
+            err_msg = str(ex)
+            if err_msg == '':
+                err_msg = 'unable to connect to RabbitMQ: ' + self.user + '@'
+                err_msg += self.host + ':' + str(self.port)
+                err_msg += self.virtual_host + ' ' + self.queue
+            raise EngineException(err_msg, 500)
         # Create model run request
         request = RequestFactory().get_request(model_run, run_url)
         # Send request
         channel.basic_publish(
             exchange='',
             routing_key=self.queue,
-            body=json.dumps(request.to_json()),
+            body=json.dumps(request.to_dict()),
             properties=pika.BasicProperties(
                 delivery_mode = 2, # make message persistent
             )
@@ -359,12 +397,12 @@ class ModelRunRequest(object):
         self.resource_url = resource_url
 
     @staticmethod
-    def from_json(json_obj):
-        """Create model run request from Json object.
+    def from_dict(json_obj):
+        """Create model run request from a dictionary serialization.
 
         Parameters
         ----------
-        json_obj : Json Object
+        json_obj : dict
             Json dump for object representing the model run request.
 
         Returns
@@ -377,13 +415,13 @@ class ModelRunRequest(object):
             json_obj['href']
         )
 
-    def to_json(self):
-        """Return Json representation of the run request.
+    def to_dict(self):
+        """Return dictionary serialization of the run request.
 
         Returns
         -------
-        Json Object
-            Json dump for object representing the model run request.
+        dict
+            Dictionary representing the model run request.
         """
         return {
             'run_id' : self.run_id,
@@ -447,7 +485,7 @@ def init_registry(mongo, model_defs, clear_collection=False):
     if clear_collection:
         registry.clear_collection()
     for i in range(len(model_defs)):
-        model = registry.from_json(model_defs[i])
+        model = registry.from_dict(model_defs[i])
         registry.register_model(
             model.identifier,
             model.properties,

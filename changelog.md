@@ -24,3 +24,9 @@
 ### 0.2.2 - 2017.06-30
 
 * Fix bug (missing init parameter for EngineException)
+
+### 0.3.0 - 2017-07-01
+
+* Add update connector API call
+* Rename to_json/from_json to to_dict/from_dict
+* Updated unit tests to API changes

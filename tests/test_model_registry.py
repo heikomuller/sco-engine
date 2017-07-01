@@ -26,12 +26,12 @@ class TestModelRegistryMethods(unittest.TestCase):
         MongoClient().drop_database('test_sco')
 
     def test_delete_models(self):
-        """Test creation of model objects."""
+        """Test deletion of model objects."""
         # Create model from Json document
         count = 0
         models = []
         for i in range(len(self.models)):
-            model = self.engine.registry.from_json(self.models[i])
+            model = self.engine.registry.from_dict(self.models[i])
             self.engine.register_model(
                 model.identifier,
                 model.properties,
@@ -57,7 +57,7 @@ class TestModelRegistryMethods(unittest.TestCase):
 	# We need to be able to register a model with the same
 	# identifier as a previously registered one
        	for i in range(len(self.models)):
-     	    model = self.engine.registry.from_json(self.models[i])
+     	    model = self.engine.registry.from_dict(self.models[i])
             self.engine.register_model(
                 model.identifier,
                 model.properties,
@@ -67,11 +67,11 @@ class TestModelRegistryMethods(unittest.TestCase):
             )
 
     def test_list_models(self):
-        """Test creation of model objects."""
+        """Test model object listings."""
         # Create model from Json document
         count = 0
         for i in range(len(self.models)):
-            model = self.engine.registry.from_json(self.models[i])
+            model = self.engine.registry.from_dict(self.models[i])
             self.engine.register_model(
                 model.identifier,
                 model.properties,
@@ -88,7 +88,7 @@ class TestModelRegistryMethods(unittest.TestCase):
         """Test creation of model objects."""
         # Create model from Json document
         for i in range(len(self.models)):
-            model = self.engine.registry.from_json(self.models[i])
+            model = self.engine.registry.from_dict(self.models[i])
             # Insert model
             m = self.engine.register_model(
                 model.identifier,
@@ -107,7 +107,7 @@ class TestModelRegistryMethods(unittest.TestCase):
             self.assertEqual(m.name, model.name)
         # Create duplicate model should raise ValueError
         for i in range(len(self.models)):
-            model = self.engine.registry.from_json(self.models[i])
+            model = self.engine.registry.from_dict(self.models[i])
             # Insert model
             with self.assertRaises(ValueError):
                 m = self.engine.register_model(
@@ -118,7 +118,7 @@ class TestModelRegistryMethods(unittest.TestCase):
                     model.connector
                 )
         # Register model with empty connector should raise ValueError
-        model = self.engine.registry.from_json(self.models[0])
+        model = self.engine.registry.from_dict(self.models[0])
         with self.assertRaises(ValueError):
             m = self.engine.register_model(
                 model.identifier,
@@ -149,10 +149,32 @@ class TestModelRegistryMethods(unittest.TestCase):
                 {'connector' : 'unknown'}
             )
 
-    def test_upsert_model_properties(self):
-        """Test creation of model objects."""
+    def test_update_model_connector(self):
+        """Test update of model connector information."""
         # Register a model
-        model = self.engine.registry.from_json(self.models[0])
+        model = self.engine.registry.from_dict(self.models[0])
+        self.engine.register_model(
+            model.identifier,
+            {'name' : 'Some name'},
+            model.parameters,
+            model.outputs,
+            model.connector
+        )
+        m = self.engine.get_model(model.identifier)
+        connector = m.connector
+        # Make sure connector updates are corrrect
+        connector['host'] = 'some.host.com'
+        self.assertIsNotNone(
+            self.engine.registry.update_connector(model.identifier, connector)
+        )
+        m2 = self.engine.get_model(model.identifier)
+        self.assertEqual(m.name, m2.name)
+        self.assertEqual(m2.connector['host'], 'some.host.com')
+
+    def test_upsert_model_properties(self):
+        """Test update of model properties."""
+        # Register a model
+        model = self.engine.registry.from_dict(self.models[0])
         self.engine.register_model(
             model.identifier,
             {'name' : 'Some name'},

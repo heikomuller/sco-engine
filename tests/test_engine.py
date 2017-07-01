@@ -35,7 +35,7 @@ class TestSCOEngine(unittest.TestCase):
     def test_run_model(self):
         """Test encoding and decoding model run requests."""
         # Register a model
-        model = self.engine.registry.from_json(self.models[0])
+        model = self.engine.registry.from_dict(self.models[0])
         self.engine.register_model(
             model.identifier,
             model.properties,
@@ -71,6 +71,33 @@ class TestSCOEngine(unittest.TestCase):
                 ),
                 'some url'
             )
+
+    def test_update_model_connector(self):
+        """Test update of model connector information."""
+        # Register a model
+        model = self.engine.registry.from_dict(self.models[0])
+        self.engine.register_model(
+            model.identifier,
+            {'name' : 'Some name'},
+            model.parameters,
+            model.outputs,
+            model.connector
+        )
+        m = self.engine.get_model(model.identifier)
+        connector = m.connector
+        # Make sure connector updates are corrrect
+        connector['host'] = 'some.host.com'
+        self.assertIsNotNone(
+            self.engine.update_model_connector(model.identifier, connector)
+        )
+        m2 = self.engine.get_model(model.identifier)
+        self.assertEqual(m.name, m2.name)
+        self.assertEqual(m2.connector['host'], 'some.host.com')
+        # Update with invalid connector should raise ValueError
+        connector['connector'] = 'INVALID'
+        with self.assertRaises(ValueError):
+            self.engine.update_model_connector(model.identifier, connector)
+
 
 if __name__ == '__main__':
     unittest.main()

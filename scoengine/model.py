@@ -48,7 +48,7 @@ class ModelOutputFile(object):
         self.mime_type = mime_type
 
     @staticmethod
-    def from_json(doc):
+    def from_dict(doc):
         """Create a model output file object from a dictionary.
 
         """
@@ -57,7 +57,7 @@ class ModelOutputFile(object):
             doc['mimeType']
         )
 
-    def to_json(self):
+    def to_dict(self):
         """Get a dictionary serialization of the object to convert into a Json
         object.
 
@@ -109,16 +109,16 @@ class ModelOutputs(object):
             names.add(attachment.filename)
 
     @staticmethod
-    def from_json(doc):
+    def from_dict(doc):
         """Create a model output object from a dictionary.
 
         """
         return ModelOutputs(
             doc['prediction'],
-            [ModelOutputFile.from_json(a) for a in doc['attachments']]
+            [ModelOutputFile.from_dict(a) for a in doc['attachments']]
         )
 
-    def to_json(self):
+    def to_dict(self):
         """Get a dictionary serialization of the object to convert into a Json
         object.
 
@@ -128,7 +128,7 @@ class ModelOutputs(object):
         """
         return {
             'prediction' : self.prediction_filename,
-            'attachments' : [a.to_json() for a in self.attachments]
+            'attachments' : [a.to_dict() for a in self.attachments]
         }
 
 
@@ -222,13 +222,13 @@ class ModelRegistry(MongoDBStore):
         """
         super(ModelRegistry, self).__init__(mongo.get_database().models)
 
-    def delete_model(self, identifier, erase=False):
+    def delete_model(self, model_id, erase=False):
         """Delete the model with given identifier in the database. Returns the
         handle for the deleted model or None if object identifier is unknown.
 
         Parameters
         ----------
-        identifier : string
+        model_id : string
             Unique model identifier
         erase : Boolean, optinal
             If true, the record will be deleted from the database. Otherwise,
@@ -238,15 +238,15 @@ class ModelRegistry(MongoDBStore):
         -------
         ModelHandle
         """
-        return self.delete_object(identifier, erase=erase)
+        return self.delete_object(model_id, erase=erase)
 
-    def exists_model(self, identifier):
+    def exists_model(self, model_id):
         """Returns true if a model with the given identifier exists in the
         registry.
 
         Parameters
         ----------
-        identifier : string
+        model_id : string
             Unique model identifier
 
         Returns
@@ -256,15 +256,15 @@ class ModelRegistry(MongoDBStore):
         """
         # Return True if query for object identifier with active flag on returns
         # a result.
-        return self.exists_object(identifier)
+        return self.exists_object(model_id)
 
-    def from_json(self, document):
-        """Create a model database object from a given Json document.
+    def from_dict(self, document):
+        """Create a model database object from a given dictionary serialization.
 
         Parameters
         ----------
-        document : JSON
-            Json representation of the object
+        document : dict
+            Dictionary serialization of the object
 
         Returns
         -------
@@ -283,13 +283,13 @@ class ModelRegistry(MongoDBStore):
         return ModelHandle(
             document['_id'],
             document['properties'],
-            [AttributeDefinition.from_json(el) for el in document['parameters']],
-            ModelOutputs.from_json(document['outputs']),
+            [AttributeDefinition.from_dict(el) for el in document['parameters']],
+            ModelOutputs.from_dict(document['outputs']),
             document['connector'],
             timestamp=timestamp
         )
 
-    def get_model(self, identifier):
+    def get_model(self, model_id):
         """Retrieve model with given identifier from the database.
 
         Parameters
@@ -303,7 +303,7 @@ class ModelRegistry(MongoDBStore):
             Handle for model with given identifier or None if no model
             with identifier exists.
         """
-        return self.get_object(identifier, include_inactive=False)
+        return self.get_object(model_id, include_inactive=False)
 
     def list_models(self, limit=-1, offset=-1):
         """List models in the database. Takes optional parameters limit and
@@ -322,7 +322,7 @@ class ModelRegistry(MongoDBStore):
         """
         return self.list_objects(limit=limit, offset=offset)
 
-    def register_model(self, identifier, properties, parameters, outputs, connector):
+    def register_model(self, model_id, properties, parameters, outputs, connector):
         """Create an experiment object for the subject and image group. Objects
         are referenced by their identifier. The reference to a functional data
         object is optional.
@@ -331,7 +331,7 @@ class ModelRegistry(MongoDBStore):
 
         Parameters
         ----------
-        identifier : string
+        model_id : string
             Unique model identifier
         properties : Dictionary
             Dictionary of model specific properties.
@@ -348,12 +348,12 @@ class ModelRegistry(MongoDBStore):
             Handle for created model object in database
         """
         # Create object handle and store it in database before returning it
-        obj = ModelHandle(identifier, properties, parameters, outputs, connector)
+        obj = ModelHandle(model_id, properties, parameters, outputs, connector)
         self.insert_object(obj)
         return obj
 
-    def to_json(self, model):
-        """Create a Json-like object for a model.
+    def to_dict(self, model):
+        """Create a dictionary serialization for a model.
 
         Parameters
         ----------
@@ -362,14 +362,37 @@ class ModelRegistry(MongoDBStore):
         Returns
         -------
         dict
-            Json-like object representation
+            Dictionary serialization for a model
         """
         # Get the basic Json object from the super class
-        obj = super(ModelRegistry, self).to_json(model)
+        obj = super(ModelRegistry, self).to_dict(model)
         # Add model parameter
         obj['parameters'] = [
-            para.to_json() for para in model.parameters
+            para.to_dict() for para in model.parameters
         ]
-        obj['outputs'] = model.outputs.to_json()
+        obj['outputs'] = model.outputs.to_dict()
         obj['connector'] = model.connector
         return obj
+
+    def update_connector(self, model_id, connector):
+        """Update the connector information for a given model.
+
+        Returns None if the specified model not exist.
+
+        Parameters
+        ----------
+        model_id : string
+            Unique model identifier
+        connector : dict
+            New connection information
+
+        Returns
+        -------
+        ModelHandle
+        """
+        model = self.get_model(model_id)
+        if model is None:
+            return None
+        model.connector = connector
+        self.replace_object(model)
+        return model
