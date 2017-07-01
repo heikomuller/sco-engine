@@ -34,3 +34,4 @@
 ### 0.3.1 - 2017-07-01
 
 * Add buffered RabbitMQ connector to avoid ConnectionClosed exceptions
+* Add worker for request buffer

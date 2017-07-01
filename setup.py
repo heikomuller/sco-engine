@@ -16,6 +16,7 @@ setup(
     install_requires=[
         'pika',
         'pymongo',
+        'pyaml',
         'sco-datastore'
     ]
 )

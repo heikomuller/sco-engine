@@ -35,6 +35,9 @@ workers.
 """
 CONNECTOR_RABBITMQ = 'rabbitmq'
 
+"""MongoDB collection that is used as request buffer."""
+COLL_REQBUFFER = 'requestbuffer'
+
 
 # ------------------------------------------------------------------------------
 #
@@ -57,7 +60,7 @@ class SCOEngine(object):
         """
         # Data is bein stored in a collection named 'models'
         self.registry = ModelRegistry(mongo)
-        self.buffer_collection = mongo.get_database().requestbuffer
+        self.buffer_collection = mongo.get_database()[COLL_REQBUFFER]
 
     def delete_model(self, model_id):
         """Delete the model with the given identifier from the model registry.
