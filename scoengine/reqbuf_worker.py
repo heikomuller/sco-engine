@@ -10,7 +10,10 @@ import time
 import yaml
 
 from scodata.mongo import MongoDBFactory
-from scoengine import COLL_REQBUFFER
+
+
+"""MongoDB collection that is used as request buffer."""
+COLL_REQBUFFER = 'requestbuffer'
 
 
 def handle_request(request):
