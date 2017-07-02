@@ -35,3 +35,9 @@
 
 * Add buffered RabbitMQ connector to avoid ConnectionClosed exceptions
 * Add worker for request buffer
+
+### 0.3.2 - 2017-07-02
+
+* Replace is_model property of model resources with type according to changes in sco-datastore
+* Change description of model attachments by adding a path property that contains the path to an attachment in the model output directory.
+* Rename prediction_filename to prediction_file in ModelOutputs and change type to ModelOutputFile (instead of string) to allow prediction results to be in sub-folders of the model run output directory

@@ -143,7 +143,7 @@ class TestModelRegistryMethods(unittest.TestCase):
                 model.properties,
                 model.parameters,
                 ModelOutputs(
-                    model.outputs.prediction_filename,
+                    model.outputs.prediction_file,
                     model.outputs.attachments + model.outputs.attachments
                 ),
                 {'connector' : 'unknown'}
